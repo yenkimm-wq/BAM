@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI EyeCare - Trợ Lý Bảo Vệ Mắt Thông Minh</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      fontFamily:{sans:['Be Vietnam Pro','Inter','sans-serif']},
+      colors:{
+        eye:{50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',500:'#0ea5e9',600:'#0284c7',700:'#0369a1',800:'#075985',900:'#0c4a6e'},
+        teal:{500:'#14b8a6'}
+      }
+    }
+  }
+}
+</script>
+<style>
+*{scroll-behavior:smooth}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#7dd3fc;border-radius:999px}
+.glass{backdrop-filter:blur(12px)}
+.shadow-eye{box-shadow:0 8px 30px rgba(14,165,233,0.12)}
+.eye-ball{animation: float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(0.05)}}
+.pupil{animation: lookAround 6s ease-in-out infinite}
+@keyframes lookAround{0%,100%{transform:translate(0,0)}25%{transform:translate(6px,-2px)}50%{transform:translate(-6px,2px)}75%{transform:translate(2px,4px)}}
+.blue-filter{position:fixed;inset:0;background:rgba(255,180,60,0.18);pointer-events:none;z-index:9998;mix-blend-mode:multiply;display:none}
+.blue-filter.active{display:block}
+.dark body{background:#0f172a;color:#e2e8f0}
+</style>
+</head>
+<body class="bg-[#f8fbff] text-slate-800 font-sans antialiased selection:bg-sky-200">
+<div id="blueFilter" class="blue-filter"></div>
+
+<!-- Top bar -->
+<div class="bg-[#0c4a6e] text-white text-[12px]">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-2 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> AI EyeCare đang bảo vệ mắt bạn</span>
+      <span class="hidden md:inline opacity-70">• Quy tắc 20-20-20 được khuyến nghị bởi bác sĩ nhãn khoa</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="liveClock" class="font-mono bg-white/15 px-2.5 py-1 rounded-full">00:00:00</span>
+      <button onclick="toggleBlueFilter()" id="blueFilterBtn" class="hidden sm:flex items-center gap-1.5 bg-amber-400 text-slate-900 px-3 py-1 rounded-full font-bold text-xs"><i data-lucide="sun" class="w-3.5 h-3.5"></i> Lọc ánh sáng xanh: TẮT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-white/90 glass border-b border-sky-100">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 h-[68px] flex items-center gap-4">
+    <a href="#" class="flex items-center gap-3 shrink-0">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-eye">
+        <i data-lucide="eye" class="w-6 h-6"></i>
+      </div>
+      <div class="leading-tight">
+        <div class="font-extrabold text-[18px] tracking-tight">AI EyeCare</div>
+        <div class="text-[11px] font-medium text-slate-500">Trợ lý bảo vệ mắt • AI 2026</div>
+      </div>
+    </a>
+
+    <nav class="hidden lg:flex items-center gap-1 text-[14px] font-medium ml-6">
+      <a href="#dashboard" class="px-3.5 py-2 rounded-full bg-sky-50 text-sky-700 font-bold">Dashboard</a>
+      <a href="#exercise" class="px-3.5 py-2 hover:bg-slate-50 rounded-full transition">Bài tập mắt</a>
+      <a href="#test" class="px-3.5 py-2 hover:bg-slate-50 rounded-full transition">Kiểm tra mắt</a>
+      <a href="#tips" class="px-3.5 py-2 hover:bg-slate-50 rounded-full transition">Mẹo bảo vệ</a>
+    </nav>
+
+    <div class="flex items-center gap-2 ml-auto">
+      <button onclick="toggleDarkMode()" id="darkBtn" class="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:border-sky-300" title="Dark mode"><i data-lucide="moon" class="w-4 h-4"></i></button>
+      <button onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})" class="hidden md:inline-flex h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold text-sm shadow-md shadow-sky-600/20 gap-1.5 items-center"><i data-lucide="play" class="w-4 h-4"></i> Bắt đầu bảo vệ</button>
+      <button id="mobileMenuBtn" class="lg:hidden w-10 h-10 rounded-full border flex items-center justify-center"><i data-lucide="menu" class="w-5 h-5"></i></button>
+    </div>
+  </div>
+  <div id="mobileNav" class="hidden lg:hidden border-t bg-white px-4 py-3 space-y-1 text-sm font-medium">
+    <a href="#dashboard" class="block py-2 px-3 bg-sky-50 rounded-xl text-sky-700">Dashboard</a>
+    <a href="#exercise" class="block py-2 px-3 hover:bg-slate-50 rounded-xl">Bài tập mắt</a>
+    <a href="#test" class="block py-2 px-3 hover:bg-slate-50 rounded-xl">Kiểm tra mắt</a>
+    <a href="#tips" class="block py-2 px-3 hover:bg-slate-50 rounded-xl">Mẹo bảo vệ</a>
+    <button onclick="toggleBlueFilter()" class="w-full mt-2 h-10 bg-amber-400 rounded-xl font-bold flex items-center justify-center gap-1.5"><i data-lucide="sun" class="w-4 h-4"></i> Lọc ánh sáng xanh</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative overflow-hidden bg-gradient-to-br from-white via-sky-50 to-blue-50">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-8 md:py-12 grid lg:grid-cols-12 gap-8 items-center">
+    <div class="lg:col-span-7">
+      <div class="inline-flex items-center gap-2 bg-white border border-sky-200 shadow-sm px-3 py-1.5 rounded-full text-xs font-bold text-sky-700">
+        <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span> AI theo dõi thời gian nhìn màn hình 24/7
+        <span class="bg-sky-600 text-white px-2 py-0.5 rounded-full text-[10px]">MỚI 2026</span>
+      </div>
+      <h1 class="mt-4 text-[32px] md:text-[46px] font-extrabold leading-[1.05] tracking-tight">
+        Đôi mắt khỏe mạnh<br>
+        <span class="bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">làm việc hiệu quả hơn</span>
+      </h1>
+      <p class="mt-4 text-[15px] md:text-[17px] leading-relaxed text-slate-600 max-w-[620px]">
+        AI EyeCare nhắc bạn nghỉ ngơi theo quy tắc <b class="text-slate-900">20-20-20</b>, hướng dẫn bài tập mắt, kiểm tra mỏi mắt và tư vấn 1-1. Giảm 80% mỏi mắt khi làm việc lâu.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button onclick="startTracking()" class="h-12 px-7 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold shadow-lg shadow-sky-600/20 flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5"></i> Bật bảo vệ ngay
+        </button>
+        <a href="#test" class="h-12 px-6 bg-white border border-slate-200 hover:border-sky-300 rounded-full font-semibold flex items-center gap-2"><i data-lucide="scan-eye" class="w-5 h-5 text-sky-600"></i> Kiểm tra mắt 30s</a>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-3 text-xs font-semibold">
+        <span class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-full"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i> Giảm 80% mỏi mắt sau 7 ngày</span>
+        <span class="flex items-center gap-1.5 bg-sky-50 border border-sky-200 px-3 py-2 rounded-full"><i data-lucide="badge-check" class="w-4 h-4 text-sky-600"></i> Theo quy tắc 20-20-20 chuẩn nhãn khoa</span>
+        <span class="flex items-center gap-1.5 bg-violet-50 border border-violet-200 px-3 py-2 rounded-full"><i data-lucide="eye" class="w-4 h-4 text-violet-600"></i> AI phân tích chính xác 92%</span>
+      </div>
+      <div class="mt-3 flex items-center gap-2 text-[11px] text-slate-500"><i data-lucide="info" class="w-3.5 h-3.5"></i> Miễn phí 100% • Không cần đăng nhập • Dữ liệu lưu cục bộ, bảo mật</div>
+    </div>
+
+    <!-- Eye visual -->
+    <div class="lg:col-span-5 relative">
+      <div class="relative bg-white rounded-[28px] shadow-xl shadow-sky-900/10 border border-sky-100 p-6 md:p-8 overflow-hidden">
+        <div class="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-br from-sky-200 to-blue-200 rounded-full blur-3xl opacity-30"></div>
+        <!-- Big eye -->
+        <div class="relative mx-auto w-[240px] h-[150px] bg-white border-[3px] border-slate-200 rounded-[50%] flex items-center justify-center overflow-hidden shadow-inner eye-ball">
+          <div class="absolute w-full h-[2px] bg-slate-100 top-1/2"></div>
+          <div class="w-[92px] h-[92px] rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center relative shadow-lg border-4 border-sky-100">
+            <div class="pupil w-[44px] h-[44px] rounded-full bg-slate-900 flex items-center justify-center relative">
+              <div class="w-[18px] h-[18px] bg-white rounded-full absolute top-1.5 left-2 opacity-90"></div>
+              <div class="w-[6px] h-[6px] bg-white rounded-full absolute bottom-2 right-3 opacity-60"></div>
+            </div>
+          </div>
+          <!-- eyelid blink effect -->
+          <div class="absolute inset-0 rounded-[50%] border-2 border-slate-200 pointer-events-none"></div>
+        </div>
+        <div class="text-center mt-4">
+          <div class="text-xs font-bold tracking-widest text-sky-600">AI ĐANG THEO DÕI</div>
+          <div class="text-sm font-semibold text-slate-700 mt-1">Bạn đã nhìn màn hình <span id="heroTime" class="text-sky-600 font-extrabold">00:00:00</span></div>
+          <div class="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div id="heroProgress" class="h-full bg-gradient-to-r from-sky-500 to-blue-600 rounded-full transition-all" style="width:0%"></div>
+          </div>
+          <div class="text-[11px] text-slate-500 mt-1.5">Tới lần nghỉ tiếp theo: <b id="heroNext" class="text-slate-900">20:00</b></div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 mt-6">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-center">
+            <div class="w-8 h-8 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm"><i data-lucide="timer" class="w-4 h-4 text-emerald-600"></i></div>
+            <div class="text-[11px] font-bold mt-1" id="statBreaks">0 lần nghỉ</div>
+            <div class="text-[11px] text-slate-500">Hôm nay</div>
+          </div>
+          <div class="bg-sky-50 border border-sky-100 rounded-2xl p-3 text-center">
+            <div class="w-8 h-8 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm"><i data-lucide="eye" class="w-4 h-4 text-sky-600"></i></div>
+            <div class="text-[11px] font-bold mt-1" id="statExercises">0 bài tập</div>
+            <div class="text-[11px] text-slate-500">Hoàn thành</div>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-2xl p-3 text-center">
+            <div class="w-8 h-8 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm"><i data-lucide="heart-pulse" class="w-4 h-4 text-violet-600"></i></div>
+            <div class="text-[11px] font-bold mt-1">Tốt</div>
+            <div class="text-[11px] text-slate-500">Sức khỏe mắt</div>
+          </div>
+        </div>
+      </div>
+      <!-- floating cards -->
+      <div class="absolute -top-2 -right-2 bg-white rounded-2xl shadow-lg border px-3 py-2 hidden md:flex items-center gap-2">
+        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span><span class="text-xs font-bold">20-20-20 Active</span>
+      </div>
+      <div class="absolute -bottom-3 -left-2 bg-slate-900 text-white rounded-2xl shadow-lg px-4 py-2.5 hidden md:block">
+        <div class="text-[11px] opacity-70">Nhắc nhở tiếp theo</div>
+        <div class="text-sm font-bold flex items-center gap-1.5"><i data-lucide="bell" class="w-4 h-4 text-amber-400"></i> <span id="floatingNext">20:00</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="max-w-[1280px] mx-auto px-4 md:px-6 py-8 md:py-10">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <div class="inline-flex items-center gap-2 bg-sky-600 text-white px-3 py-1.5 rounded-full text-xs font-bold"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> DASHBOARD • THEO DÕI TRỰC TIẾP</div>
+      <h2 class="mt-3 text-[26px] md:text-[32px] font-extrabold tracking-tight">Bảng điều khiển bảo vệ mắt</h2>
+      <p class="text-slate-600 text-sm mt-1">Theo dõi thời gian màn hình, nhận nhắc nhở thông minh và xem thống kê sức khỏe mắt.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="hidden sm:flex items-center gap-1.5 text-xs bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-full font-semibold"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Đồng bộ LocalStorage</span>
+      <button onclick="resetStats()" class="h-9 px-4 bg-white border rounded-full text-xs font-bold hover:bg-slate-50">Reset hôm nay</button>
+    </div>
+  </div>
+
+  <div class="mt-6 grid lg:grid-cols-12 gap-6">
+    <!-- Tracker -->
+    <div class="lg:col-span-7 bg-white rounded-[24px] border border-slate-200 shadow-sm p-5 md:p-6">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold flex items-center gap-2"><span class="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center"><i data-lucide="timer" class="w-4 h-4"></i></span> Thời gian sử dụng màn hình</h3>
+        <span id="trackerStatus" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Tạm dừng</span>
+      </div>
+
+      <div class="mt-5 text-center">
+        <div id="mainTimer" class="text-[48px] md:text-[56px] font-extrabold tracking-tight font-mono leading-none">00:00:00</div>
+        <div class="text-xs font-semibold tracking-widest text-slate-500 mt-1">GIỜ : PHÚT : GIÂY</div>
+        <div class="mt-4 flex justify-center gap-3">
+          <button id="startBtn" onclick="startTracking()" class="h-11 px-7 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold flex items-center gap-1.5 shadow-md"><i data-lucide="play" class="w-4 h-4"></i> Bắt đầu</button>
+          <button onclick="pauseTracking()" class="h-11 px-6 bg-white border border-slate-200 rounded-full font-bold flex items-center gap-1.5 hover:bg-slate-50"><i data-lucide="pause" class="w-4 h-4"></i> Tạm dừng</button>
+          <button onclick="resetTimer()" class="h-11 px-6 bg-slate-900 text-white rounded-full font-bold flex items-center gap-1.5"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset</button>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-3 gap-3">
+        <div class="bg-slate-50 border rounded-2xl p-3 text-center">
+          <div class="text-[11px] font-semibold text-slate-500">Hôm nay</div>
+          <div id="todayTotal" class="font-extrabold text-sky-700">00:00:00</div>
+          <div class="text-[11px] text-slate-500">Tổng thời gian</div>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-center">
+          <div class="text-[11px] font-semibold text-slate-500">Đã nghỉ</div>
+          <div id="breakCount" class="font-extrabold text-emerald-700 text-lg">0 lần</div>
+          <div class="text-[11px] text-slate-500">20-20-20</div>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-3 text-center">
+          <div class="text-[11px] font-semibold text-slate-500">Sắp nghỉ</div>
+          <div id="nextBreak" class="font-extrabold text-amber-700 text-lg">20:00</div>
+          <div class="text-[11px] text-slate-500">Còn lại</div>
+        </div>
+      </div>
+
+      <div class="mt-5 bg-sky-50 border border-sky-100 rounded-2xl p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-sm flex items-center gap-1.5"><i data-lucide="bell-ring" class="w-4 h-4 text-sky-600"></i> Nhắc nhở 20-20-20</div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input id="reminderToggle" type="checkbox" checked class="sr-only peer" onchange="toggleReminder(this.checked)">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+          </label>
+        </div>
+        <p class="text-xs text-slate-600 mt-1">Cứ mỗi <b>20 phút</b> nhìn xa 20 feet (6m) trong <b>20 giây</b> để giảm mỏi mắt.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button onclick="setIntervalTime(15)" class="intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-white" data-min="15">15 phút</button>
+          <button onclick="setIntervalTime(20)" class="intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-sky-600 text-white border-sky-600" data-min="20">20 phút ★</button>
+          <button onclick="setIntervalTime(30)" class="intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-white" data-min="30">30 phút</button>
+          <button onclick="setIntervalTime(60)" class="intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-white" data-min="60">60 phút</button>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button onclick="testReminder()" class="h-8 px-3 bg-white border rounded-full text-xs font-bold flex items-center gap-1"><i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Test chuông</button>
+          <label class="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" id="soundToggle" checked class="rounded"> Âm thanh</label>
+          <label class="flex items-center gap-1.5 text-xs font-medium"><input type="checkbox" id="notifToggle" checked class="rounded"> Thông báo</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats & Health -->
+    <div class="lg:col-span-5 space-y-6">
+      <div class="bg-gradient-to-br from-sky-600 to-blue-600 rounded-[24px] p-6 text-white relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/15 rounded-full blur-2xl"></div>
+        <div class="relative">
+          <div class="text-xs font-bold tracking-widest opacity-80">SỨC KHỎE MẮT HÔM NAY</div>
+          <div class="mt-2 flex items-end gap-3">
+            <div id="healthScore" class="text-[42px] font-extrabold leading-none">92</div>
+            <div class="pb-1">
+              <div class="text-sm font-bold">/100 • Tốt</div>
+              <div class="text-xs opacity-80">Bạn đang làm rất tốt!</div>
+            </div>
+          </div>
+          <div class="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
+            <div id="healthBar" class="h-full bg-white rounded-full" style="width:92%"></div>
+          </div>
+          <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="bg-white/15 rounded-xl p-2"><div class="font-bold">8.2h</div><div class="opacity-80">Ngủ đêm qua</div></div>
+            <div class="bg-white/15 rounded-xl p-2"><div class="font-bold">1.8L</div><div class="opacity-80">Nước uống</div></div>
+            <div class="bg-white/15 rounded-xl p-2"><div class="font-bold">3/5</div><div class="opacity-80">Bài tập</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[24px] border border-slate-200 p-5">
+        <h4 class="font-bold text-sm flex items-center gap-1.5"><i data-lucide="bar-chart-3" class="w-4 h-4 text-sky-600"></i> Thống kê tuần</h4>
+        <div class="mt-4 flex items-end gap-2 h-[90px]">
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="w-full bg-sky-100 rounded-t-xl relative" style="height:55px"><div class="absolute bottom-0 w-full bg-sky-500 rounded-t-xl" style="height:70%"></div></div>
+            <span class="text-[11px] font-semibold">T2</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="w-full bg-sky-100 rounded-t-xl relative" style="height:72px"><div class="absolute bottom-0 w-full bg-sky-600 rounded-t-xl" style="height:85%"></div></div>
+            <span class="text-[11px] font-semibold">T3</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="w-full bg-sky-100 rounded-t-xl relative" style="height:45px"><div class="absolute bottom-0 w-full bg-sky-400 rounded-t-xl" style="height:60%"></div></div>
+            <span class="text-[11px] font-semibold">T4</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="w-full bg-amber-100 rounded-t-xl relative" style="height:78px"><div class="absolute bottom-0 w-full bg-amber-500 rounded-t-xl" style="height:92%"></div></div>
+            <span class="text-[11px] font-bold text-amber-700">T5</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="w-full bg-sky-100 rounded-t-xl relative" style="height:60px"><div class="absolute bottom-0 w-full bg-sky-500 rounded-t-xl" style="height:75%"></div></div>
+            <span class="text-[11px] font-semibold">T6</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1 opacity-60">
+            <div class="w-full bg-slate-100 rounded-t-xl" style="height:30px"></div>
+            <span class="text-[11px] font-semibold">T7</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1 opacity-60">
+            <div class="w-full bg-slate-100 rounded-t-xl" style="height:30px"></div>
+            <span class="text-[11px] font-semibold">CN</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs">
+          <span class="text-slate-500">Trung bình: <b class="text-slate-900">5.2h/ngày</b> nhìn màn hình</span>
+          <span class="text-emerald-600 font-bold">-12% so với tuần trước ↓</span>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i data-lucide="lightbulb" class="w-5 h-5"></i></div>
+        <div>
+          <div class="font-bold text-sm text-amber-900">Mẹo nhanh</div>
+          <p class="text-xs text-amber-900/80 leading-relaxed mt-1">Đặt màn hình cách mắt 50-70cm, đỉnh màn hình ngang tầm mắt. Chớp mắt thường xuyên và uống đủ nước để tránh khô mắt.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXERCISES -->
+<section id="exercise" class="bg-white border-y border-slate-100">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-10">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-violet-600 text-white px-3 py-1.5 rounded-full text-xs font-bold"><i data-lucide="eye" class="w-4 h-4"></i> BÀI TẬP MẮT • 20 GIÂY MỖI BÀI</div>
+        <h2 class="mt-3 text-[26px] md:text-[32px] font-extrabold">Thư giãn & tập luyện cho mắt</h2>
+        <p class="text-slate-600 text-sm mt-1 max-w-2xl">Thực hiện mỗi bài 20-30 giây khi được nhắc, hoặc chủ động tập 3-5 lần/ngày để giảm mỏi mắt rõ rệt.</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs font-semibold">
+        <span class="bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-full flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i> <span id="exerciseProgress">0/6 hoàn thành</span></span>
+      </div>
+    </div>
+
+    <div id="exerciseGrid" class="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- JS render -->
+    </div>
+
+    <!-- Exercise player modal inline -->
+    <div id="exercisePlayer" class="hidden mt-6 bg-slate-900 text-white rounded-[24px] p-6 md:p-8 relative overflow-hidden">
+      <div class="absolute -top-20 -right-20 w-64 h-64 bg-sky-600/30 rounded-full blur-3xl"></div>
+      <div class="relative grid md:grid-cols-2 gap-6 items-center">
+        <div>
+          <div class="text-xs tracking-widest opacity-60 font-bold">ĐANG TẬP</div>
+          <h3 id="playerTitle" class="text-[24px] font-extrabold mt-1">Đảo mắt tròn</h3>
+          <p id="playerDesc" class="text-sm opacity-80 mt-2">Nhìn theo chấm xanh di chuyển tròn chậm, giữ đầu thẳng.</p>
+          <div class="mt-4 flex items-center gap-3">
+            <div class="text-[36px] font-mono font-extrabold" id="playerTimer">20</div>
+            <div class="text-xs opacity-70">giây<br>còn lại</div>
+            <div class="ml-4 h-2 flex-1 bg-white/15 rounded-full overflow-hidden max-w-[160px]">
+              <div id="playerProgress" class="h-full bg-sky-400 rounded-full transition-all" style="width:100%"></div>
+            </div>
+          </div>
+          <div class="mt-5 flex gap-2">
+            <button onclick="stopExercise()" class="h-10 px-6 bg-white text-slate-900 rounded-full font-bold text-sm">Dừng lại</button>
+            <button onclick="nextExercise()" class="h-10 px-6 bg-white/15 border border-white/20 rounded-full font-bold text-sm">Bài tiếp theo →</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-[20px] p-6 flex items-center justify-center h-[220px] relative overflow-hidden">
+          <div id="exerciseAnimation" class="relative w-full h-full flex items-center justify-center">
+            <!-- dot animation -->
+            <div id="animDot" class="w-6 h-6 bg-sky-500 rounded-full shadow-lg shadow-sky-500/30 absolute"></div>
+            <div class="w-32 h-32 border-2 border-dashed border-slate-200 rounded-full absolute"></div>
+            <div class="w-20 h-20 border border-slate-100 rounded-full absolute"></div>
+          </div>
+          <div class="absolute bottom-2 left-2 right-2 text-center text-[11px] text-slate-500">Giữ đầu cố định, chỉ di chuyển mắt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEST -->
+<section id="test" class="max-w-[1280px] mx-auto px-4 md:px-6 py-10">
+  <div class="grid lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-7">
+      <div class="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-1.5 rounded-full text-xs font-bold"><i data-lucide="scan-eye" class="w-4 h-4"></i> KIỂM TRA MẮT NHANH • 30 GIÂY</div>
+      <h3 class="mt-3 text-[24px] font-extrabold">Bạn có đang mỏi mắt không?</h3>
+      <p class="text-sm text-slate-600 mt-1">Trả lời 5 câu hỏi ngắn, AI sẽ đánh giá mức độ mỏi mắt và đưa lời khuyên phù hợp.</p>
+
+      <div class="mt-5 bg-white rounded-[24px] border border-slate-200 p-5 md:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-xs font-bold tracking-widest text-slate-500">CÂU HỎI <span id="qIndex">1</span>/5</div>
+          <div class="flex gap-1" id="qDots"></div>
+        </div>
+        <h4 id="qText" class="font-bold text-[16px] leading-snug">Bạn có cảm thấy khô mắt, cần chớp mắt liên tục khi nhìn màn hình?</h4>
+        <div id="qOptions" class="mt-4 grid gap-2">
+          <!-- JS -->
+        </div>
+        <div class="mt-5 flex gap-2">
+          <button onclick="prevQuestion()" id="prevBtn" class="h-10 px-5 bg-white border rounded-full font-semibold text-sm disabled:opacity-40" disabled>← Quay lại</button>
+          <button onclick="nextQuestion()" id="nextBtn" class="flex-1 h-10 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold text-sm">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- Acuity test -->
+      <div class="mt-6 bg-white rounded-[24px] border border-slate-200 p-5 md:p-6">
+        <h4 class="font-bold flex items-center gap-2"><i data-lucide="search" class="w-4 h-4 text-sky-600"></i> Test thị lực nhanh (Tumbling E)</h4>
+        <p class="text-xs text-slate-500 mt-1">Đứng cách màn hình 50cm, che một mắt và cho biết chữ E đang quay hướng nào.</p>
+        <div class="mt-4 bg-slate-50 border rounded-2xl p-6 flex flex-col items-center">
+          <div id="tumblingE" class="text-[84px] font-black leading-none select-none" style="font-family:monospace">E</div>
+          <div class="text-xs text-slate-500 mt-2">Cỡ chữ: <span id="eSize">Lớn</span> • Khoảng cách 50cm</div>
+          <div class="mt-4 grid grid-cols-4 gap-2 w-full max-w-[280px]">
+            <button onclick="answerE('up')" class="h-10 bg-white border rounded-xl font-bold hover:border-sky-300">↑ Trên</button>
+            <button onclick="answerE('down')" class="h-10 bg-white border rounded-xl font-bold hover:border-sky-300">↓ Dưới</button>
+            <button onclick="answerE('left')" class="h-10 bg-white border rounded-xl font-bold hover:border-sky-300">← Trái</button>
+            <button onclick="answerE('right')" class="h-10 bg-white border rounded-xl font-bold hover:border-sky-300">→ Phải</button>
+          </div>
+          <div id="eResult" class="mt-3 text-sm font-bold"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5">
+      <div id="testResult" class="bg-white rounded-[24px] border border-slate-200 p-6 flex flex-col min-h-[420px]">
+        <div id="emptyTest" class="flex-1 flex flex-col items-center justify-center text-center py-8">
+          <div class="w-16 h-16 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center"><i data-lucide="clipboard-check" class="w-8 h-8 text-sky-600"></i></div>
+          <h4 class="mt-3 font-bold">Chưa có kết quả</h4>
+          <p class="text-sm text-slate-500 mt-1 max-w-[300px]">Hoàn thành 5 câu hỏi để xem mức độ mỏi mắt và lời khuyên cá nhân hóa từ AI.</p>
+          <div class="mt-4 w-full bg-amber-50 border border-amber-200 rounded-2xl p-3 text-left">
+            <div class="text-xs font-bold text-amber-800">Lưu ý</div>
+            <p class="text-xs text-amber-900/80 mt-1">Kết quả chỉ tham khảo, không thay thế khám bác sĩ nhãn khoa. Nếu đau nhức, nhìn mờ kéo dài, hãy đi khám ngay.</p>
+          </div>
+        </div>
+        <div id="filledTest" class="hidden">
+          <div class="text-xs font-bold tracking-widest text-emerald-600">KẾT QUẢ AI PHÂN TÍCH</div>
+          <h3 id="testTitle" class="text-[22px] font-extrabold mt-1">Mắt bạn đang mỏi nhẹ</h3>
+          <div class="mt-2 flex items-center gap-2"><span id="testScore" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">6/10 điểm</span><span id="testLevel" class="text-xs text-slate-500">Mức độ: Nhẹ</span></div>
+          <div class="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden"><div id="testBar" class="h-full bg-amber-500 rounded-full" style="width:60%"></div></div>
+          <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4">
+            <div class="text-xs font-bold text-sky-800 flex items-center gap-1"><i data-lucide="sparkles" class="w-4 h-4"></i> Lời khuyên từ AI EyeCare</div>
+            <p id="testAdvice" class="text-sm leading-relaxed text-slate-700 mt-2"></p>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button onclick="document.getElementById('exercise').scrollIntoView({behavior:'smooth'})" class="h-11 bg-sky-600 text-white rounded-xl font-bold text-sm">Tập mắt ngay</button>
+            <button onclick="resetTest()" class="h-11 bg-white border rounded-xl font-bold text-sm">Làm lại test</button>
+          </div>
+          <div class="mt-3 text-xs text-slate-500 flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5"></i> Gợi ý: Bật nhắc 20-20-20 và lọc ánh sáng xanh.</div>
+        </div>
+      </div>
+
+      <div class="mt-4 bg-white rounded-2xl border p-4">
+        <h4 class="font-bold text-sm flex items-center gap-1.5"><i data-lucide="history" class="w-4 h-4 text-slate-600"></i> Lịch sử kiểm tra</h4>
+        <div id="historyList" class="mt-3 space-y-2 text-xs">
+          <div class="text-slate-500 text-center py-3">Chưa có lịch sử</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIPS -->
+<section id="tips" class="bg-gradient-to-b from-sky-50/60 to-white border-t border-sky-100">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-10">
+    <h2 class="text-[26px] font-extrabold">Mẹo bảo vệ mắt hàng ngày</h2>
+    <p class="text-sm text-slate-600 mt-1">Những thói quen nhỏ giúp mắt bạn khỏe hơn mỗi ngày.</p>
+    <div class="mt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl border p-5 hover:shadow-md transition">
+        <div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center"><i data-lucide="monitor" class="w-5 h-5 text-sky-700"></i></div>
+        <div class="font-bold text-sm mt-3">Khoảng cách vàng</div>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Giữ màn hình cách mắt 50-70cm, tâm màn hình thấp hơn mắt 10-20cm. Phóng to chữ lên 125% nếu cần.</p>
+      </div>
+      <div class="bg-white rounded-2xl border p-5 hover:shadow-md transition">
+        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i data-lucide="droplets" class="w-5 h-5 text-emerald-700"></i></div>
+        <div class="font-bold text-sm mt-3">Chớp mắt & uống nước</div>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Chớp mắt 15-20 lần/phút, uống 1.5-2L nước/ngày. Dùng nước mắt nhân tạo nếu khô mắt.</p>
+      </div>
+      <div class="bg-white rounded-2xl border p-5 hover:shadow-md transition">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><i data-lucide="sun-medium" class="w-5 h-5 text-amber-700"></i></div>
+        <div class="font-bold text-sm mt-3">Ánh sáng & nghỉ ngơi</div>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Làm việc nơi đủ sáng, bật lọc ánh sáng xanh sau 19h. Ngủ 7-8h, cho mắt nghỉ 5 phút mỗi giờ.</p>
+      </div>
+      <div class="bg-white rounded-2xl border p-5 hover:shadow-md transition">
+        <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center"><i data-lucide="carrot" class="w-5 h-5 text-violet-700"></i></div>
+        <div class="font-bold text-sm mt-3">Dinh dưỡng cho mắt</div>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Ăn cà rốt, cá hồi, trứng, rau xanh đậm, việt quất. Bổ sung Omega-3, Vitamin A, Lutein.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-[#0c4a6e] text-sky-50">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
+    <div class="flex flex-wrap gap-8 justify-between">
+      <div>
+        <div class="flex items-center gap-2 font-extrabold text-white"><span class="w-8 h-8 rounded-lg bg-white text-sky-700 flex items-center justify-center"><i data-lucide="eye" class="w-5 h-5"></i></span> AI EyeCare</div>
+        <p class="text-xs opacity-70 mt-2 max-w-[360px] leading-relaxed">Trợ lý AI bảo vệ mắt thông minh. Giúp bạn làm việc lâu với máy tính mà không mỏi mắt. Không thay thế tư vấn bác sĩ nhãn khoa.</p>
+      </div>
+      <div class="text-xs opacity-70">
+        <div class="font-bold text-white text-sm">Liên hệ</div>
+        <div class="mt-2">Email: hello@aieyecare.vn</div>
+        <div>Hotline: 1900 636 836</div>
+        <div class="mt-3 bg-white text-sky-700 inline-flex px-3 py-1.5 rounded-full font-bold text-xs">© 2026 AI EyeCare • Made with 💙 for your eyes</div>
+      </div>
+    </div>
+    <div class="mt-6 pt-6 border-t border-white/10 text-[11px] opacity-50 flex flex-wrap justify-between gap-2">
+      <span>Tuyên bố: Thông tin chỉ tham khảo. Nếu có triệu chứng nặng (đau nhức dữ dội, nhìn mờ đột ngột, đỏ mắt kéo dài) hãy đến bệnh viện mắt ngay.</span>
+      <span>Thiết kế: Sky Blue Medical • Tailwind + Lucide</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Break Modal -->
+<div id="breakModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="bg-white rounded-[28px] max-w-[480px] w-full p-6 md:p-8 text-center shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-100 rounded-full blur-2xl"></div>
+      <div class="relative">
+        <div class="w-16 h-16 mx-auto rounded-full bg-sky-600 text-white flex items-center justify-center animate-pulse"><i data-lucide="eye" class="w-8 h-8"></i></div>
+        <h3 class="mt-4 text-[22px] font-extrabold">Đến lúc cho mắt nghỉ rồi! 👀</h3>
+        <p class="text-sm text-slate-600 mt-2">Hãy nhìn ra xa <b>6 mét</b> trong <b>20 giây</b> nhé. Đứng dậy vươn vai, chớp mắt nhẹ nhàng.</p>
+        <div class="mt-5 bg-slate-900 text-white rounded-2xl p-4">
+          <div class="text-xs opacity-60 tracking-widest font-bold">THỜI GIAN NGHỈ</div>
+          <div id="breakTimer" class="text-[48px] font-mono font-extrabold leading-none mt-1">20</div>
+          <div class="text-xs opacity-60">giây</div>
+          <div class="mt-3 h-1.5 bg-white/15 rounded-full overflow-hidden"><div id="breakProgress" class="h-full bg-sky-400 rounded-full" style="width:100%"></div></div>
+        </div>
+        <div class="mt-5 flex gap-2">
+          <button onclick="completeBreak()" class="flex-1 h-11 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold">Hoàn thành ✓</button>
+          <button onclick="snoozeBreak()" class="h-11 px-6 bg-white border rounded-full font-bold">Nhắc lại sau 5p</button>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-3">Bạn đã nghỉ <span id="modalBreakCount">0</span> lần hôm nay • Tuyệt vời!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chatbot -->
+<div id="chatWidget" class="fixed bottom-4 right-4 z-50">
+  <div id="chatPanel" class="hidden w-[360px] max-w-[92vw] h-[460px] bg-white rounded-[20px] shadow-2xl border flex flex-col overflow-hidden">
+    <div class="h-14 bg-gradient-to-r from-sky-600 to-blue-600 text-white px-4 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-white text-sky-600 flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5"></i></div>
+        <div>
+          <div class="font-bold text-sm leading-none">EyeCare AI</div>
+          <div class="text-[11px] opacity-80 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Online • Trả lời tức thì</div>
+        </div>
+      </div>
+      <button onclick="toggleChat(false)" class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-3 bg-[#f8fbff]">
+      <div class="flex gap-2">
+        <div class="w-7 h-7 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0 text-xs"><i data-lucide="bot" class="w-4 h-4"></i></div>
+        <div class="bg-white border rounded-2xl rounded-tl-sm px-3 py-2 text-sm shadow-sm max-w-[78%]">Chào bạn! Mình là EyeCare AI 👁️ Mình có thể giúp gì về mỏi mắt, khô mắt, cách bảo vệ mắt hay bài tập mắt nhé!</div>
+      </div>
+    </div>
+    <div class="p-2 border-t bg-white">
+      <div class="flex flex-wrap gap-1.5 mb-2">
+        <button onclick="quickChat('Mắt tôi bị khô, phải làm sao?')" class="text-[11px] px-2.5 py-1 bg-sky-50 border border-sky-200 rounded-full hover:bg-sky-100">Khô mắt?</button>
+        <button onclick="quickChat('Quy tắc 20-20-20 là gì?')" class="text-[11px] px-2.5 py-1 bg-sky-50 border border-sky-200 rounded-full hover:bg-sky-100">20-20-20?</button>
+        <button onclick="quickChat('Ăn gì tốt cho mắt?')" class="text-[11px] px-2.5 py-1 bg-sky-50 border border-sky-200 rounded-full hover:bg-sky-100">Ăn gì tốt?</button>
+      </div>
+      <div class="flex gap-2">
+        <input id="chatInput" placeholder="Nhập câu hỏi..." class="flex-1 h-10 px-3 bg-slate-50 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" class="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center"><i data-lucide="send" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  </div>
+  <button id="chatBtn" onclick="toggleChat(true)" class="w-14 h-14 rounded-full bg-sky-600 hover:bg-sky-700 text-white shadow-xl shadow-sky-600/25 flex items-center justify-center ml-auto">
+    <i data-lucide="message-circle" class="w-7 h-7"></i>
+  </button>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
+  <div class="bg-slate-900 text-white px-4 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-medium">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> <span id="toastMsg">Đã lưu</span>
+  </div>
+</div>
+
+<script>
+// Icons
+lucide.createIcons();
+
+// Clock
+setInterval(()=>{ const n=new Date(); document.getElementById('liveClock').textContent=n.toLocaleTimeString('vi-VN'); },1000);
+
+// State
+let seconds=0, timer=null, isRunning=false;
+let intervalMin = 20;
+let nextBreakSec = intervalMin*60;
+let breakCount = parseInt(localStorage.getItem('eyecare_breaks')||'0');
+let exerciseDone = parseInt(localStorage.getItem('eyecare_ex_done')||'0');
+let todayTotalSec = parseInt(localStorage.getItem('eyecare_today')||'0');
+let reminderEnabled = true;
+let healthScore = 92;
+
+const exercises = [
+  {id:1, name:"Đảo mắt tròn", icon:"refresh-cw", color:"sky", time:20, desc:"Nhìn chậm theo vòng tròn 5 vòng mỗi chiều, giữ đầu thẳng.", benefit:"Giảm căng cơ mắt"},
+  {id:2, name:"Nhìn xa - nhìn gần", icon:"scan-eye", color:"emerald", time:20, desc:"Nhìn ngón tay cách 15cm rồi nhìn xa 6m, lặp lại.", benefit:"Tăng khả năng điều tiết"},
+  {id:3, name:"Chớp mắt nhanh", icon:"eye", color:"amber", time:20, desc:"Chớp mắt nhanh 15 lần, nhắm chặt 2 giây rồi mở.", benefit:"Giảm khô mắt"},
+  {id:4, name:"Nhìn 4 hướng", icon:"move", color:"violet", time:20, desc:"Nhìn lên-xuống-trái-phải, mỗi hướng giữ 3 giây.", benefit:"Tăng linh hoạt nhãn cầu"},
+  {id:5, name:"Massage mắt", icon:"hand", color:"rose", time:30, desc:"Xoa ấm tay, áp nhẹ lên mắt 10 giây, lặp 3 lần.", benefit:"Thư giãn sâu"},
+  {id:6, name:"Nhìn số 8", icon:"infinity", color:"teal", time:20, desc:"Vẽ số 8 nằm ngang bằng mắt, chậm và đều.", benefit:"Phối hợp cơ mắt"},
+];
+
+const questions = [
+  {q:"Bạn có cảm thấy khô mắt, cần chớp mắt liên tục khi nhìn màn hình?", opts:["Không bao giờ","Thỉnh thoảng (1-2 lần/ngày)","Thường xuyên","Liên tục, rất khó chịu"]},
+  {q:"Mắt bạn có bị mờ, phải dụi mắt mới nhìn rõ lại?", opts:["Không","Hiếm khi","Thường sau 2-3h làm việc","Có, mờ cả ngày"]},
+  {q:"Bạn có bị đau nhức hốc mắt, đau đầu sau khi dùng máy tính?", opts:["Không","Nhẹ, hết khi nghỉ","Đau rõ, cần uống thuốc","Đau nhiều, ảnh hưởng công việc"]},
+  {q:"Bạn có bị đỏ mắt, chảy nước mắt hoặc nhạy cảm với ánh sáng?", opts:["Không","Hơi đỏ cuối ngày","Đỏ rõ, hay chảy nước mắt","Rất đỏ, sợ ánh sáng"]},
+  {q:"Bạn ngủ bao nhiêu tiếng mỗi đêm và có dùng điện thoại trước khi ngủ?", opts:["7-8h, không dùng ĐT 30p trước ngủ","6-7h, thỉnh thoảng dùng","<6h, thường xuyên dùng ĐT","<5h, dùng ĐT đến khi ngủ"]},
+];
+let qIdx=0, answers=new Array(5).fill(-1);
+let eDirection = 'right', eCorrect=0, eTotal=0;
+
+// Init
+function formatTime(s){
+  const h=String(Math.floor(s/3600)).padStart(2,'0');
+  const m=String(Math.floor(s%3600/60)).padStart(2,'0');
+  const sec=String(s%60).padStart(2,'0');
+  return `${h}:${m}:${sec}`;
+}
+function formatShort(s){
+  const m=String(Math.floor(s/60)).padStart(2,'0');
+  const sec=String(s%60).padStart(2,'0');
+  return `${m}:${sec}`;
+}
+
+function updateUI(){
+  document.getElementById('mainTimer').textContent=formatTime(seconds);
+  document.getElementById('heroTime').textContent=formatTime(seconds);
+  document.getElementById('todayTotal').textContent=formatTime(todayTotalSec+seconds);
+  document.getElementById('breakCount').textContent=breakCount+' lần';
+  document.getElementById('statBreaks').textContent=breakCount+' lần nghỉ';
+  document.getElementById('statExercises').textContent=exerciseDone+' bài tập';
+  document.getElementById('nextBreak').textContent=formatShort(nextBreakSec);
+  document.getElementById('heroNext').textContent=formatShort(nextBreakSec);
+  document.getElementById('floatingNext').textContent=formatShort(nextBreakSec);
+  document.getElementById('exerciseProgress').textContent=exerciseDone + '/6 hoàn thành';
+  // progress bar
+  const pct = 100 - (nextBreakSec/(intervalMin*60)*100);
+  document.getElementById('heroProgress').style.width=pct+'%';
+  document.getElementById('trackerStatus').textContent=isRunning? 'Đang bảo vệ • '+formatShort(nextBreakSec):'Tạm dừng';
+  document.getElementById('trackerStatus').className = isRunning? 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200' : 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600';
+  document.getElementById('modalBreakCount').textContent=breakCount;
+}
+
+function startTracking(){
+  if(isRunning) return;
+  isRunning=true;
+  document.getElementById('startBtn').innerHTML='<i data-lucide="shield-check" class="w-4 h-4"></i> Đang bảo vệ';
+  document.getElementById('startBtn').className='h-11 px-7 bg-emerald-600 text-white rounded-full font-bold flex items-center gap-1.5';
+  lucide.createIcons();
+  toast('Đã bật chế độ bảo vệ mắt • Nhắc mỗi '+intervalMin+' phút');
+  if(timer) clearInterval(timer);
+  timer=setInterval(()=>{
+    seconds++; todayTotalSec++;
+    nextBreakSec--;
+    // persist today roughly
+    if(seconds%10===0) localStorage.setItem('eyecare_today', todayTotalSec);
+    if(nextBreakSec<=0 && reminderEnabled){
+      triggerBreak();
+      nextBreakSec=intervalMin*60;
+    }
+    updateUI();
+  },1000);
+  updateUI();
+}
+function pauseTracking(){
+  isRunning=false;
+  clearInterval(timer);
+  document.getElementById('startBtn').innerHTML='<i data-lucide="play" class="w-4 h-4"></i> Tiếp tục';
+  document.getElementById('startBtn').className='h-11 px-7 bg-sky-600 hover:bg-sky-700 text-white rounded-full font-bold flex items-center gap-1.5';
+  lucide.createIcons();
+  toast('Đã tạm dừng');
+  updateUI();
+}
+function resetTimer(){
+  seconds=0; nextBreakSec=intervalMin*60;
+  pauseTracking();
+  updateUI();
+  toast('Đã reset bộ đếm');
+}
+function resetStats(){
+  breakCount=0; exerciseDone=0; todayTotalSec=0; seconds=0; nextBreakSec=intervalMin*60;
+  localStorage.setItem('eyecare_breaks','0');
+  localStorage.setItem('eyecare_ex_done','0');
+  localStorage.setItem('eyecare_today','0');
+  localStorage.removeItem('eyecare_history');
+  renderHistory();
+  updateUI();
+  renderExercises();
+  toast('Đã reset thống kê hôm nay');
+}
+
+function setIntervalTime(m){
+  intervalMin=m;
+  nextBreakSec=m*60;
+  document.querySelectorAll('.intervalBtn').forEach(b=>{
+    const isActive = parseInt(b.dataset.min)===m;
+    b.className = isActive? 'intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-sky-600 text-white border-sky-600' : 'intervalBtn px-3 py-1.5 rounded-full border text-xs font-bold bg-white';
+  });
+  updateUI();
+  toast('Đã đổi nhắc mỗi '+m+' phút');
+}
+function toggleReminder(v){
+  reminderEnabled=v;
+  toast(v?'Đã bật nhắc 20-20-20':'Đã tắt nhắc nhở');
+}
+function testReminder(){ triggerBreak(); }
+
+function triggerBreak(){
+  breakCount++;
+  localStorage.setItem('eyecare_breaks', breakCount);
+  updateUI();
+  document.getElementById('breakModal').classList.remove('hidden');
+  lucide.createIcons();
+  // sound
+  if(document.getElementById('soundToggle').checked){
+    try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.frequency.value=880; g.gain.value=0.1; o.connect(g); g.connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.6); setTimeout(()=>ctx.close(),700);}catch(e){}
+  }
+  if(document.getElementById('notifToggle').checked && 'Notification' in window){
+    if(Notification.permission==='granted') new Notification('AI EyeCare 👀', {body:'Đến lúc cho mắt nghỉ 20 giây rồi! Nhìn xa 6m nhé.'});
+    else if(Notification.permission!=='denied') Notification.requestPermission();
+  }
+  // break countdown 20s
+  let t=20;
+  document.getElementById('breakTimer').textContent=t;
+  document.getElementById('breakProgress').style.width='100%';
+  if(window.breakInterval) clearInterval(window.breakInterval);
+  window.breakInterval=setInterval(()=>{
+    t--; document.getElementById('breakTimer').textContent=t;
+    document.getElementById('breakProgress').style.width=(t/20*100)+'%';
+    if(t<=0){ clearInterval(window.breakInterval); completeBreak(); }
+  },1000);
+}
+function completeBreak(){
+  clearInterval(window.breakInterval);
+  document.getElementById('breakModal').classList.add('hidden');
+  toast('Tuyệt vời! Bạn đã hoàn thành 20 giây nghỉ 💙');
+  nextBreakSec=intervalMin*60;
+  updateUI();
+}
+function snoozeBreak(){
+  clearInterval(window.breakInterval);
+  document.getElementById('breakModal').classList.add('hidden');
+  nextBreakSec=5*60;
+  toast('Đã hoãn 5 phút, sẽ nhắc lại sau');
+  updateUI();
+}
+
+// Exercises render
+function renderExercises(){
+  const g=document.getElementById('exerciseGrid');
+  g.innerHTML=exercises.map((ex,i)=>`
+    <div class="bg-slate-50 border rounded-[20px] p-5 hover:shadow-md hover:border-sky-200 transition group">
+      <div class="flex items-start justify-between">
+        <div class="w-10 h-10 rounded-xl bg-white border flex items-center justify-center shadow-sm text-${ex.color}-600"><i data-lucide="${ex.icon}" class="w-5 h-5"></i></div>
+        <span class="text-xs font-bold px-2 py-1 rounded-full ${exerciseDone>i?'bg-emerald-100 text-emerald-700 border border-emerald-200':'bg-white border text-slate-500'}">${exerciseDone>i?'✓ Hoàn thành':ex.time+' giây'}</span>
+      </div>
+      <div class="font-bold mt-3">${ex.name}</div>
+      <p class="text-xs text-slate-600 mt-1 leading-relaxed">${ex.desc}</p>
+      <div class="mt-3 bg-white border rounded-xl px-3 py-2 flex items-center gap-2 text-xs">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i> <span class="font-medium">${ex.benefit}</span>
+      </div>
+      <button onclick="startExercise(${ex.id})" class="mt-3 w-full h-9 ${exerciseDone>i?'bg-emerald-600':'bg-slate-900 hover:bg-black'} text-white rounded-full text-xs font-bold flex items-center justify-center gap-1.5">
+        <i data-lucide="play" class="w-3.5 h-3.5"></i> ${exerciseDone>i?'Tập lại':'Bắt đầu tập'}
+      </button>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+let currentExId=null, exTimer=null, exLeft=20;
+function startExercise(id){
+  currentExId=id;
+  const ex=exercises.find(e=>e.id===id);
+  document.getElementById('exercisePlayer').classList.remove('hidden');
+  document.getElementById('playerTitle').textContent=ex.name;
+  document.getElementById('playerDesc').textContent=ex.desc;
+  exLeft=ex.time;
+  document.getElementById('playerTimer').textContent=exLeft;
+  document.getElementById('playerProgress').style.width='100%';
+  document.getElementById('exercisePlayer').scrollIntoView({behavior:'smooth', block:'center'});
+  // animate dot
+  startDotAnimation(id);
+  clearInterval(exTimer);
+  exTimer=setInterval(()=>{
+    exLeft--; document.getElementById('playerTimer').textContent=exLeft;
+    document.getElementById('playerProgress').style.width=(exLeft/ex.time*100)+'%';
+    if(exLeft<=0){ clearInterval(exTimer); finishExercise(); }
+  },1000);
+  lucide.createIcons();
+}
+function startDotAnimation(id){
+  const dot=document.getElementById('animDot');
+  dot.style.transition='none';
+  let angle=0;
+  if(window.dotInterval) clearInterval(window.dotInterval);
+  window.dotInterval=setInterval(()=>{
+    angle+=4;
+    const rad=angle*Math.PI/180;
+    let x=0,y=0;
+    if(id===1){ x=Math.cos(rad)*50; y=Math.sin(rad)*50; }
+    else if(id===2){ x=Math.sin(rad*0.5)*40; y=Math.cos(rad*0.5)*10; dot.style.transform=`scale(${1+Math.sin(rad)*0.2}) translate(${x}px,${y}px)`; return; }
+    else if(id===3){ const s = Math.sin(rad*3)>0? 0.3:1; dot.style.transform=`scaleY(${s}) translate(${Math.sin(rad*2)*20}px,${Math.cos(rad*2)*10}px)`; return;}
+    else if(id===4){ x=[0,0,40,-40][Math.floor(angle/90)%4]; y=[-40,40,0,0][Math.floor(angle/90)%4]; }
+    else if(id===5){ x=Math.cos(rad)*20; y=Math.sin(rad)*20; }
+    else { x=Math.cos(rad)*40; y=Math.sin(rad*0.5)*20; }
+    dot.style.transform=`translate(${x}px,${y}px)`;
+  },30);
+}
+function stopExercise(){
+  clearInterval(exTimer); clearInterval(window.dotInterval);
+  document.getElementById('exercisePlayer').classList.add('hidden');
+  toast('Đã dừng bài tập');
+}
+function nextExercise(){
+  if(currentExId==null) return;
+  let idx=exercises.findIndex(e=>e.id===currentExId);
+  idx=(idx+1)%exercises.length;
+  startExercise(exercises[idx].id);
+}
+function finishExercise(){
+  clearInterval(window.dotInterval);
+  exerciseDone=Math.max(exerciseDone, exercises.findIndex(e=>e.id===currentExId)+1);
+  // if completed all 6, keep 6
+  if(exerciseDone>6) exerciseDone=6;
+  // if user repeats, count total completions
+  let totalDone = parseInt(localStorage.getItem('eyecare_ex_total')||'0')+1;
+  localStorage.setItem('eyecare_ex_total', totalDone);
+  localStorage.setItem('eyecare_ex_done', exerciseDone);
+  renderExercises();
+  updateUI();
+  toast('Hoàn thành bài tập! +10 điểm sức khỏe mắt 💪');
+  // health boost
+  healthScore=Math.min(100, healthScore+2);
+  document.getElementById('healthScore').textContent=healthScore;
+  document.getElementById('healthBar').style.width=healthScore+'%';
+}
+
+// Test logic
+function renderQuestion(){
+  document.getElementById('qIndex').textContent=qIdx+1;
+  document.getElementById('qText').textContent=questions[qIdx].q;
+  document.getElementById('qOptions').innerHTML=questions[qIdx].opts.map((o,i)=>`
+    <button onclick="selectAnswer(${i})" class="text-left px-4 py-3 rounded-xl border text-sm flex items-center gap-2 ${answers[qIdx]===i?'bg-sky-600 text-white border-sky-600':'bg-white hover:border-sky-300'}">
+      <span class="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold ${answers[qIdx]===i?'bg-white text-sky-600':'bg-slate-50'}">${String.fromCharCode(65+i)}</span> ${o}
+    </button>
+  `).join('');
+  document.getElementById('prevBtn').disabled=qIdx===0;
+  document.getElementById('nextBtn').textContent=qIdx===4?'Xem kết quả →':'Tiếp theo →';
+  // dots
+  document.getElementById('qDots').innerHTML=questions.map((_,i)=>`<span class="w-2 h-2 rounded-full ${i===qIdx?'bg-sky-600': answers[i]!==-1?'bg-emerald-400':'bg-slate-200'}"></span>`).join('');
+}
+function selectAnswer(i){ answers[qIdx]=i; renderQuestion(); }
+function nextQuestion(){
+  if(answers[qIdx]===-1){ toast('Vui lòng chọn 1 đáp án'); return; }
+  if(qIdx<4){ qIdx++; renderQuestion(); }
+  else { showTestResult(); }
+}
+function prevQuestion(){ if(qIdx>0){ qIdx--; renderQuestion(); } }
+function showTestResult(){
+  const score = answers.reduce((s,a)=>s+a,0); // 0-15
+  const total = 15;
+  const pct = Math.round((score/total)*100);
+  let level, title, advice, color;
+  if(score<=3){ level='Tốt'; title='Mắt bạn đang rất khỏe! ✨'; advice='Duy trì thói quen hiện tại: nghỉ 20-20-20, ngủ đủ, chớp mắt đều. Tiếp tục tập mắt 2-3 lần/ngày để giữ phong độ.'; color='emerald'; }
+  else if(score<=7){ level='Nhẹ'; title='Mỏi mắt nhẹ 😊'; advice='Mắt bạn có dấu hiệu mỏi nhẹ do màn hình. Hãy bật nhắc 20-20-20, giảm độ sáng 10-20%, chớp mắt chủ động và tập 3 bài tập/ngày.'; color='amber'; }
+  else if(score<=11){ level='Trung bình'; title='Mỏi mắt trung bình 😟'; advice='Bạn đang mỏi mắt rõ rệt. Cần nghỉ 5 phút mỗi 30 phút, bật lọc ánh sáng xanh, dùng nước mắt nhân tạo, ngủ đủ 7h. Nếu kéo dài 3 ngày hãy khám nhãn khoa.'; color='orange'; }
+  else { level='Nặng'; title='Mỏi mắt nặng, cần chú ý! 🚨'; advice='Mắt bạn đang quá tải. Hãy giảm ngay thời gian màn hình, áp dụng 20-20-20 nghiêm ngặt, massage mắt, đi khám bác sĩ mắt trong 2-3 ngày tới nếu không cải thiện.'; color='red'; }
+  
+  document.getElementById('emptyTest').classList.add('hidden');
+  document.getElementById('filledTest').classList.remove('hidden');
+  document.getElementById('testTitle').textContent=title;
+  document.getElementById('testScore').textContent=score+'/15 điểm';
+  document.getElementById('testLevel').textContent='Mức độ: '+level;
+  document.getElementById('testAdvice').textContent=advice;
+  document.getElementById('testBar').style.width=pct+'%';
+  document.getElementById('testBar').className='h-full rounded-full ' + (color==='emerald'?'bg-emerald-500': color==='amber'?'bg-amber-500': color==='orange'?'bg-orange-500':'bg-red-500');
+  document.getElementById('testScore').className='px-2.5 py-1 rounded-full text-xs font-bold border ' + (color==='emerald'?'bg-emerald-100 text-emerald-800 border-emerald-200': color==='amber'?'bg-amber-100 text-amber-800 border-amber-200': color==='orange'?'bg-orange-100 text-orange-800 border-orange-200':'bg-red-100 text-red-800 border-red-200');
+  lucide.createIcons();
+  // history
+  const hist=JSON.parse(localStorage.getItem('eyecare_history')||'[]');
+  hist.unshift({date:new Date().toLocaleString('vi-VN'), score:score+'/15', level});
+  localStorage.setItem('eyecare_history', JSON.stringify(hist.slice(0,5)));
+  renderHistory();
+}
+function resetTest(){
+  qIdx=0; answers=new Array(5).fill(-1);
+  document.getElementById('emptyTest').classList.remove('hidden');
+  document.getElementById('filledTest').classList.add('hidden');
+  renderQuestion();
+}
+function renderHistory(){
+  const hist=JSON.parse(localStorage.getItem('eyecare_history')||'[]');
+  const el=document.getElementById('historyList');
+  if(hist.length===0){ el.innerHTML='<div class="text-slate-500 text-center py-3">Chưa có lịch sử</div>'; return;}
+  el.innerHTML=hist.map(h=>`
+    <div class="flex items-center justify-between bg-slate-50 border rounded-xl px-3 py-2">
+      <div><div class="font-bold text-slate-900">${h.level} • ${h.score}</div><div class="text-[11px] text-slate-500">${h.date}</div></div>
+      <span class="w-2 h-2 rounded-full ${h.level==='Tốt'?'bg-emerald-500': h.level==='Nhẹ'?'bg-amber-500': h.level==='Trung bình'?'bg-orange-500':'bg-red-500'}"></span>
+    </div>
+  `).join('');
+}
+
+// Tumbling E
+function newE(){
+  const dirs=['up','down','left','right'];
+  eDirection=dirs[Math.floor(Math.random()*4)];
+  const map={up:' rotated-0', down:'rotate-180', left:'-rotate-90', right:'rotate-90'};
+  const el=document.getElementById('tumblingE');
+  el.style.transform='';
+  // use rotation via CSS transform
+  const rot={up:'rotate(0deg)', down:'rotate(180deg)', left:'rotate(-90deg)', right:'rotate(90deg)'};
+  el.style.transform=rot[eDirection];
+  // random size
+  const sizes=['72px','84px','56px','48px'];
+  const labels=['Rất lớn','Lớn','Trung bình','Nhỏ'];
+  const idx=Math.floor(Math.random()*4);
+  el.style.fontSize=sizes[idx];
+  document.getElementById('eSize').textContent=labels[idx];
+}
+function answerE(dir){
+  eTotal++;
+  const correct = dir===eDirection;
+  if(correct) eCorrect++;
+  const res=document.getElementById('eResult');
+  res.textContent=correct? `✓ Chính xác! (${eCorrect}/${eTotal})` : `✗ Sai rồi, đáp án là ${eDirection==='up'?'Trên':eDirection==='down'?'Dưới':eDirection==='left'?'Trái':'Phải'} (${eCorrect}/${eTotal})`;
+  res.className=correct?'mt-3 text-sm font-bold text-emerald-600':'mt-3 text-sm font-bold text-red-600';
+  setTimeout(newE, 800);
+}
+
+// Chatbot
+function toggleChat(show){
+  document.getElementById('chatPanel').classList.toggle('hidden', !show);
+  document.getElementById('chatBtn').classList.toggle('hidden', show);
+  if(show) lucide.createIcons();
+}
+function quickChat(t){ document.getElementById('chatInput').value=t; sendChat(); }
+function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text) return;
+  addMsg(text, 'user');
+  input.value='';
+  setTimeout(()=>{ addMsg(getAIReply(text), 'bot'); }, 600);
+}
+function addMsg(text, who){
+  const box=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='flex gap-2 ' + (who==='user'?'justify-end':'');
+  div.innerHTML= who==='user'
+    ? `<div class="bg-sky-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-sm max-w-[78%]">${text}</div>`
+    : `<div class="w-7 h-7 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0 text-xs"><i data-lucide="bot" class="w-4 h-4"></i></div><div class="bg-white border rounded-2xl rounded-tl-sm px-3 py-2 text-sm shadow-sm max-w-[78%]">${text}</div>`;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  lucide.createIcons();
+}
+function getAIReply(q){
+  q=q.toLowerCase();
+  if(q.includes('khô')) return 'Khô mắt thường do chớp mắt ít khi nhìn màn hình. Bạn hãy: 1) Chớp mắt chủ động 15-20 lần/phút, 2) Uống đủ 1.5-2L nước, 3) Dùng nước mắt nhân tạo 2-3 lần/ngày, 4) Bật nhắc 20-20-20. Nếu khô rát kéo dài >3 ngày, hãy khám nhãn khoa nhé!';
+  if(q.includes('20-20-20')) return 'Quy tắc 20-20-20 là: Cứ mỗi 20 phút, nhìn xa 20 feet (~6m) trong 20 giây. Giúp cơ mắt thư giãn, giảm mỏi 60-80%. AI EyeCare sẽ tự động nhắc bạn, bạn chỉ cần nhìn ra cửa sổ hoặc góc phòng xa nhất!';
+  if(q.includes('ăn gì')||q.includes('dinh dưỡng')) return 'Ăn tốt cho mắt: 🥕 Cà rốt (Vitamin A), 🐟 Cá hồi (Omega-3), 🥚 Trứng (Lutein), 🫐 Việt quất, rau xanh đậm (cải bó xôi). Hạn chế đồ chiên, đường, rượu bia. Uống đủ nước cũng rất quan trọng!';
+  if(q.includes('cận')||q.includes('mờ')) return 'Nhìn mờ có thể do mỏi mắt, khô mắt hoặc tật khúc xạ. Hãy thử test thị lực ở mục Kiểm tra mắt và nghỉ 5 phút. Nếu mờ kéo dài, nhìn đôi, đau nhức thì nên đo mắt tại bệnh viện mắt nhé.';
+  if(q.includes('sáng xanh')||q.includes('ánh sáng')) return 'Ánh sáng xanh từ màn hình gây mỏi mắt, khó ngủ. Bạn hãy bật nút "Lọc ánh sáng xanh" ở đầu trang (màn hình sẽ ấm vàng), giảm độ sáng 30% vào buổi tối và bật Dark Mode nhé!';
+  if(q.includes('ngủ')||q.includes('mất ngủ')) return 'Ngủ đủ 7-8h giúp mắt phục hồi. Tránh dùng điện thoại 30 phút trước khi ngủ, bật lọc ánh sáng xanh sau 19h và để phòng tối hoàn toàn nhé!';
+  return 'Cảm ơn câu hỏi của bạn! Mình là EyeCare AI - trợ lý bảo vệ mắt. Mình có thể tư vấn về mỏi mắt, khô mắt, quy tắc 20-20-20, bài tập mắt và dinh dưỡng. Bạn hãy hỏi cụ thể hơn nhé! Ví dụ: "Mắt tôi mỏi phải làm sao?"';
+}
+
+// Blue filter
+let blueOn=false;
+function toggleBlueFilter(){
+  blueOn=!blueOn;
+  document.getElementById('blueFilter').classList.toggle('active', blueOn);
+  const btn=document.getElementById('blueFilterBtn');
+  if(btn) btn.innerHTML= blueOn? '<i data-lucide="moon" class="w-3.5 h-3.5"></i> Lọc ánh sáng xanh: BẬT' : '<i data-lucide="sun" class="w-3.5 h-3.5"></i> Lọc ánh sáng xanh: TẮT';
+  if(btn) btn.className= blueOn? 'hidden sm:flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1 rounded-full font-bold text-xs' : 'hidden sm:flex items-center gap-1.5 bg-amber-400 text-slate-900 px-3 py-1 rounded-full font-bold text-xs';
+  lucide.createIcons();
+  toast(blueOn?'Đã bật lọc ánh sáng xanh (màn hình ấm vàng)':'Đã tắt lọc ánh sáng xanh');
+  localStorage.setItem('eyecare_blue', blueOn?'1':'0');
+}
+function toggleDarkMode(){
+  document.documentElement.classList.toggle('dark');
+  document.body.classList.toggle('bg-[#0f172a]');
+  document.body.classList.toggle('bg-[#f8fbff]');
+  toast('Đã đổi chế độ sáng/tối');
+}
+
+// Toast
+function toast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.remove('hidden');
+  lucide.createIcons();
+  clearTimeout(window.toastTimer);
+  window.toastTimer=setTimeout(()=>t.classList.add('hidden'),2600);
+}
+
+// Mobile menu
+document.getElementById('mobileMenuBtn').addEventListener('click',()=>document.getElementById('mobileNav').classList.toggle('hidden'));
+
+// Init calls
+renderExercises();
+renderQuestion();
+renderHistory();
+newE();
+updateUI();
+if(localStorage.getItem('eyecare_blue')==='1'){ blueOn=false; toggleBlueFilter(); }
+document.getElementById('breakCount').textContent=breakCount+' lần';
+document.getElementById('statBreaks').textContent=breakCount+' lần nghỉ';
+
+// Request notification permission gently
+if('Notification' in window && Notification.permission==='default'){
+  setTimeout(()=>Notification.requestPermission(), 3000);
+}
+</script>
+</body>
+</html>
